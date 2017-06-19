@@ -1,5 +1,8 @@
 import hypermedia.net.*;
 
+//final static boolean DBG = true;
+final static boolean DBG = false;
+
 UDP PS_SN_handle = null;  // The handle of PS_SN
 UDP PS_Device_handle = null;  // The handle of PS_Device
 
@@ -50,13 +53,13 @@ void setup()
 
 void draw()
 {
-  int y = 20;
+  int y = 0;
   background(0);
-  text("PS_SN_Agent " + PS_SN_local_ip + "," + PS_SN_local_port, 0, y += 20);
-  text(SN_rcv_data_length, 0, y += 20);
-  text(Device_remote_ip!=null?Device_remote_ip:"no ip", 0, y += 20);
-  text(Device_remote_port, 0, y += 20);
-  text(Device_rcv_data_length, 0, y += 20);
+  text("PS_SN_Agent " + PS_SN_local_ip + "," + PS_SN_local_port, 5, y += 20);
+  text(SN_rcv_data_length, 5, y += 20);
+  text(Device_remote_ip!=null?Device_remote_ip:"no ip", 5, y += 20);
+  text(Device_remote_port, 5, y += 20);
+  text(Device_rcv_data_length, 5, y += 20);
 }
 
 //void PS_SN_receive_event(byte[] data, String ip, int port)
@@ -65,17 +68,17 @@ void PS_SN_receive_event(byte[] data)
   String PS_Device_remote_ip;
   byte[] out;
   
-  println("PS_SN_receive_event data.length=" + data.length);
+  if(DBG) println("PS_SN_receive_event data.length=" + data.length);
 
   SN_rcv_data_length = data.length;
 
   if(data.length < 3) return;
   
   PS_Device_remote_ip = PS_Device_remote_ip_base + int(data[0]) + "." + int(data[1]);
-  println("PS_SN_receive_event PS_Device_remote_ip=" + PS_Device_remote_ip);
+  if(DBG) println("PS_SN_receive_event PS_Device_remote_ip=" + PS_Device_remote_ip);
 
   out = java.util.Arrays.copyOfRange(data, 2, data.length);
-  println("PS_SN_receive_event out.length=" + out.length);
+  if(DBG) println("PS_SN_receive_event out.length=" + out.length);
 /*
   System.arraycopy(data, 2, data, 0, data.length - 2);
   data.length = data.length - 2;
@@ -90,13 +93,13 @@ void PS_Device_receive_event(byte[] data, String ip, int port)
   int PS_SN_remote_port;
   String[] ip_split = ip.split("\\.");
 
-  println("PS_Device_receive_event ip=" + ip + " port=" + port + " data.length=" + data.length);
+  if(DBG) println("PS_Device_receive_event ip=" + ip + " port=" + port + " data.length=" + data.length);
 
   Device_remote_ip = ip;
   Device_remote_port = port;
   Device_rcv_data_length = data.length;
 
   PS_SN_remote_port = 10000 + Integer.parseInt(ip_split[2]) * 100 + Integer.parseInt(ip_split[3]);
-  println("PS_Device_receive_event PS_SN_remote_port=" + PS_SN_remote_port);
+  if(DBG) println("PS_Device_receive_event PS_SN_remote_port=" + PS_SN_remote_port);
   PS_SN_handle.send(data, PS_SN_remote_ip, PS_SN_remote_port);
 }
