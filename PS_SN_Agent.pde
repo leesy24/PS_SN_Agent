@@ -4,7 +4,9 @@ import hypermedia.net.*;
 final static boolean DBG = false;
 
 final static int PS_SN_SURFACE_W = 350;
-final static int PS_SN_SURFACE_H = 640;
+final static int PS_SN_SURFACE_H = 480;
+final static int PS_SN_FONT_SIZE = 11;
+final static int PS_SN_TEXT_MARGIN = 3;
 
 UDP PS_SN_handle = null;  // The handle of PS_SN
 UDP PS_Device_handle = null;  // The handle of PS_Device
@@ -17,11 +19,12 @@ int PS_Device_remote_port = 1024;
 int PS_Device_local_port = 1025;
 
 int PS_SN_logs_index = 0;
-int PS_SN_logs_length = PS_SN_SURFACE_H/15;
+int PS_SN_logs_length = (PS_SN_SURFACE_H-PS_SN_TEXT_MARGIN)/PS_SN_FONT_SIZE;
 String[] PS_SN_logs_array = new String[PS_SN_logs_length];
 boolean PS_SN_logs_stop = false;
 
 boolean PS_SN_SERVICE_started = true;
+String PS_SN_BTN_SERVICE_str = "STOP";
 
 int PS_SN_BTN_SERVICE_X, PS_SN_BTN_SERVICE_Y, PS_SN_BTN_SERVICE_W, PS_SN_BTN_SERVICE_H;
 int PS_SN_BTN_SERVICE_C_normal = 255;
@@ -29,8 +32,9 @@ int PS_SN_BTN_SERVICE_C_over = 192;
 int PS_SN_BTN_SERVICE_C_pressed = 128;
 int PS_SN_BTN_SERVICE_C_current = PS_SN_BTN_SERVICE_C_normal;
 
-boolean PS_SN_LOG_first = true;
 boolean PS_SN_LOG_on = false;
+//boolean PS_SN_LOG_on = true;
+String PS_SN_BTN_LOG_str = "LOG ON";
 
 int PS_SN_BTN_LOG_X, PS_SN_BTN_LOG_Y, PS_SN_BTN_LOG_W, PS_SN_BTN_LOG_H;
 int PS_SN_BTN_LOG_C_normal = 255;
@@ -50,10 +54,26 @@ void settings() {
   }
 */
   size(PS_SN_SURFACE_W, PS_SN_SURFACE_H);
+
+  //println("PS_SN_logs_length="+PS_SN_logs_length);
+  //println("PS_SN_logs_index="+PS_SN_logs_index);
+  int i;
+  for(i = 0; i < PS_SN_logs_length - 1; i ++)
+  {
+    PS_SN_logs_array[i] = "";
+  }
+  PS_SN_logs_array[i] = millis() + ":PS_SN_Agent service started!";
+  //PS_SN_logs_index = 1;
+  //println("i="+i+","+PS_SN_logs_array[i]);
+
+  PS_SN_BTN_LOG_str = "LOG ON";
 }
 
 void setup()
 {
+  noStroke();
+  textSize(PS_SN_FONT_SIZE);
+
   //println("PS_SN_logs_length="+PS_SN_logs_length);
   // Create a new datagram connection on local port
   // and wait for incomming message
@@ -71,16 +91,20 @@ void setup()
   PS_Device_handle.setReceiveHandler( "PS_Device_receive_event" );
   PS_Device_handle.listen( true );
 
-  int i;
-  for(i = 0; i < PS_SN_logs_length - 1; i ++)
-  {
-    PS_SN_logs_array[i] = "";
-  }
-  PS_SN_logs_array[i] = millis() + ":PS_SN_Agent service started!";
-  PS_SN_logs_array[i-1] = millis() + ":PS_SN_Agent service started!";
-
   //surface.setTitle("PS_SN_Agent " + PS_SN_local_port + "," + PS_SN_local_ip + "," + PS_Device_local_port);
   surface.setTitle("PS_SN_Agent " + PS_SN_local_port + "," + PS_Device_local_port);
+
+  PS_SN_BTN_SERVICE_str = "STOP";
+  PS_SN_BTN_SERVICE_X = PS_SN_SURFACE_W - (int(textWidth(PS_SN_BTN_SERVICE_str)) + PS_SN_TEXT_MARGIN * 2) - PS_SN_TEXT_MARGIN;
+  PS_SN_BTN_SERVICE_Y = PS_SN_TEXT_MARGIN;
+  PS_SN_BTN_SERVICE_W = int(textWidth(PS_SN_BTN_SERVICE_str)) + PS_SN_TEXT_MARGIN * 2; 
+  PS_SN_BTN_SERVICE_H = PS_SN_FONT_SIZE + PS_SN_TEXT_MARGIN * 2;
+
+  //PS_SN_BTN_LOG_str = "LOG ON";
+  PS_SN_BTN_LOG_X = PS_SN_SURFACE_W - (int(textWidth(PS_SN_BTN_LOG_str)) + PS_SN_TEXT_MARGIN * 2) - PS_SN_TEXT_MARGIN;
+  PS_SN_BTN_LOG_Y = PS_SN_TEXT_MARGIN + PS_SN_BTN_SERVICE_H + PS_SN_TEXT_MARGIN;
+  PS_SN_BTN_LOG_W = int(textWidth(PS_SN_BTN_LOG_str)) + PS_SN_TEXT_MARGIN * 2; 
+  PS_SN_BTN_LOG_H = PS_SN_FONT_SIZE + PS_SN_TEXT_MARGIN * 2;
 }
 
 void reset()
@@ -96,34 +120,44 @@ void reset()
     PS_Device_handle.close();
     PS_Device_handle = null;
   }
+
+  PS_SN_BTN_SERVICE_str = "START";
+  PS_SN_BTN_SERVICE_X = PS_SN_SURFACE_W - (int(textWidth(PS_SN_BTN_SERVICE_str)) + PS_SN_TEXT_MARGIN * 2) - PS_SN_TEXT_MARGIN;
+  PS_SN_BTN_SERVICE_W = int(textWidth(PS_SN_BTN_SERVICE_str)) + PS_SN_TEXT_MARGIN * 2; 
+/*
+  PS_SN_BTN_LOG_str = "LOG OFF";
+  PS_SN_BTN_LOG_X = PS_SN_SURFACE_W - (int(textWidth(PS_SN_BTN_SERVICE_str)) + PS_SN_TEXT_MARGIN * 2) - PS_SN_TEXT_MARGIN;
+  PS_SN_BTN_LOG_W = int(textWidth(PS_SN_BTN_SERVICE_str)) + PS_SN_TEXT_MARGIN * 2;
+*/
 }
 
 void draw()
 {
   background(0); // black
 
-  if(PS_SN_LOG_on || PS_SN_LOG_first)
+  if(PS_SN_LOG_on)
   {
     fill(255); // white
-    int i = PS_SN_logs_index;
-    for(int y = 15; y < PS_SN_SURFACE_H; y += 15)
+    int i;
+    int y;
+    //println("PS_SN_logs_index=i="+i);
+    y = PS_SN_FONT_SIZE + PS_SN_TEXT_MARGIN;
+    for(i = 0; i < PS_SN_logs_length; i ++)
     {
-      //if(PS_SN_logs_array[i] != null)
-        text(PS_SN_logs_array[i], 5, y);
-      i = (i += 1) % PS_SN_logs_length;
+      //println("i="+i+",y="+y+","+PS_SN_logs_array[i]);
+      text(PS_SN_logs_array[(PS_SN_logs_index + i)%PS_SN_logs_length], PS_SN_TEXT_MARGIN, y);
+      y += PS_SN_FONT_SIZE;
     }
-    PS_SN_LOG_first = false;
+    //println("i="+i+",y="+y);
   }
-
-  String b;
-  if(PS_SN_SERVICE_started)
-    b = "STOP";
   else
-    b = "START";
-  PS_SN_BTN_SERVICE_X = PS_SN_SURFACE_W - (int(textWidth(b)) + 5 * 2) - 5;
-  PS_SN_BTN_SERVICE_Y = 5;
-  PS_SN_BTN_SERVICE_W = int(textWidth(b)) + 5 * 2; 
-  PS_SN_BTN_SERVICE_H = 12 + 5 * 2;
+  {
+    fill(255); // white
+    if(PS_SN_SERVICE_started)
+      text("PS_SN_Agent service started and running!", PS_SN_TEXT_MARGIN, PS_SN_FONT_SIZE + PS_SN_TEXT_MARGIN);
+    else
+      text("PS_SN_Agent service stoped!", PS_SN_TEXT_MARGIN, PS_SN_FONT_SIZE + PS_SN_TEXT_MARGIN);
+  }
 
 /*
   if( (mouseX >= PS_SN_BTN_SERVICE_X && mouseX <= PS_SN_BTN_SERVICE_X + PS_SN_BTN_SERVICE_W)
@@ -143,8 +177,11 @@ void draw()
 
   fill(PS_SN_BTN_SERVICE_C_current); // white
   rect(PS_SN_BTN_SERVICE_X, PS_SN_BTN_SERVICE_Y, PS_SN_BTN_SERVICE_W, PS_SN_BTN_SERVICE_H);
+  fill(PS_SN_BTN_LOG_C_current); // white
+  rect(PS_SN_BTN_LOG_X, PS_SN_BTN_LOG_Y, PS_SN_BTN_LOG_W, PS_SN_BTN_LOG_H);
   fill(0); // black
-  text(b, PS_SN_BTN_SERVICE_X + 5, PS_SN_BTN_SERVICE_Y + 12 + 5); 
+  text(PS_SN_BTN_SERVICE_str, PS_SN_BTN_SERVICE_X + PS_SN_TEXT_MARGIN, PS_SN_BTN_SERVICE_Y + PS_SN_FONT_SIZE + PS_SN_TEXT_MARGIN); 
+  text(PS_SN_BTN_LOG_str, PS_SN_BTN_LOG_X + PS_SN_TEXT_MARGIN, PS_SN_BTN_LOG_Y + PS_SN_FONT_SIZE + PS_SN_TEXT_MARGIN); 
 }
 
 void mousePressed()
@@ -158,6 +195,13 @@ void mousePressed()
   else
   {
     PS_SN_logs_stop = true;
+  }
+
+  if( (mouseX >= PS_SN_BTN_LOG_X && mouseX <= PS_SN_BTN_LOG_X + PS_SN_BTN_LOG_W)
+      &&
+      (mouseY >= PS_SN_BTN_LOG_Y && mouseY <= PS_SN_BTN_LOG_Y + PS_SN_BTN_LOG_H))
+  {
+    PS_SN_BTN_LOG_C_current = PS_SN_BTN_LOG_C_pressed;
   }
 }
 
@@ -174,7 +218,7 @@ void mouseReleased()
       PS_SN_SERVICE_started = false;
       PS_SN_logs_array[PS_SN_logs_index] = millis() + ":PS_SN_Agent service stoped!";
       PS_SN_logs_index = (PS_SN_logs_index += 1) % PS_SN_logs_length;
-      //println("PS_SN_logs_index="+PS_SN_logs_index);
+      //println("mouseReleased() PS_SN_SERVICE_started PS_SN_logs_index="+PS_SN_logs_index);
     }
     else
     {
@@ -182,15 +226,37 @@ void mouseReleased()
       PS_SN_SERVICE_started = true;
       PS_SN_logs_array[PS_SN_logs_index] = millis() + ":PS_SN_Agent service started!";
       PS_SN_logs_index = (PS_SN_logs_index += 1) % PS_SN_logs_length;
-      //println("PS_SN_logs_index="+PS_SN_logs_index);
+      //println("mouseReleased() !PS_SN_SERVICE_started PS_SN_logs_index="+PS_SN_logs_index);
     }
   }
   else
   {
     PS_SN_logs_stop = false;
   }
-}
 
+  PS_SN_BTN_LOG_C_current = PS_SN_BTN_LOG_C_normal;
+  if( (mouseX >= PS_SN_BTN_LOG_X && mouseX <= PS_SN_BTN_LOG_X + PS_SN_BTN_LOG_W)
+      &&
+      (mouseY >= PS_SN_BTN_LOG_Y && mouseY <= PS_SN_BTN_LOG_Y + PS_SN_BTN_LOG_H))
+  {
+    if(PS_SN_LOG_on)
+    {
+      PS_SN_LOG_on = false;
+      //println("mouseReleased() PS_SN_LOG_on ");
+      PS_SN_BTN_LOG_str = "LOG ON";
+      PS_SN_BTN_LOG_X = PS_SN_SURFACE_W - (int(textWidth(PS_SN_BTN_LOG_str)) + PS_SN_TEXT_MARGIN * 2) - PS_SN_TEXT_MARGIN;
+      PS_SN_BTN_LOG_W = int(textWidth(PS_SN_BTN_LOG_str)) + PS_SN_TEXT_MARGIN * 2;
+    }
+    else
+    {
+      PS_SN_LOG_on = true;
+      //println("mouseReleased() !PS_SN_LOG_on ");
+      PS_SN_BTN_LOG_str = "LOG OFF";
+      PS_SN_BTN_LOG_X = PS_SN_SURFACE_W - (int(textWidth(PS_SN_BTN_LOG_str)) + PS_SN_TEXT_MARGIN * 2) - PS_SN_TEXT_MARGIN;
+      PS_SN_BTN_LOG_W = int(textWidth(PS_SN_BTN_LOG_str)) + PS_SN_TEXT_MARGIN * 2;
+    }
+  }
+}
 
 void PS_SN_receive_event(byte[] data, String ip, int port)
 {
@@ -213,11 +279,11 @@ void PS_SN_receive_event(byte[] data, String ip, int port)
 */
 
   PS_Device_handle.send(out, PS_Device_remote_ip, PS_Device_remote_port);
-  if(!PS_SN_logs_stop)
+  if(PS_SN_LOG_on && !PS_SN_logs_stop)
   {
     PS_SN_logs_array[PS_SN_logs_index] = millis()+":"+PS_SN_local_ip+":"+port+","+PS_SN_local_port+","+data.length+","+data[0]+data[1]+"->"+PS_Device_remote_ip+","+PS_Device_remote_port+","+out.length;
     PS_SN_logs_index = (PS_SN_logs_index += 1) % PS_SN_logs_length;
-    //println("PS_SN_logs_index="+PS_SN_logs_index);
+    //println("PS_SN_receive_event() PS_SN_logs_index="+PS_SN_logs_index);
   }
 }
 
@@ -231,10 +297,10 @@ void PS_Device_receive_event(byte[] data, String ip, int port)
   PS_SN_remote_port = 10000 + Integer.parseInt(ip_split[2]) * 100 + Integer.parseInt(ip_split[3]);
   if(DBG) println("PS_Device_receive_event PS_SN_remote_port=" + PS_SN_remote_port);
   PS_SN_handle.send(data, PS_SN_remote_ip, PS_SN_remote_port);
-  if(!PS_SN_logs_stop)
+  if(PS_SN_LOG_on && !PS_SN_logs_stop)
   {
     PS_SN_logs_array[PS_SN_logs_index] = millis()+":"+ip+":"+port+","+PS_Device_local_port+","+data.length+"->"+PS_SN_remote_ip+","+PS_SN_remote_port+","+data.length;
     PS_SN_logs_index = (PS_SN_logs_index += 1) % PS_SN_logs_length;
-    //println("PS_SN_logs_index="+PS_SN_logs_index);
+    //println("PS_Device_receive_event() PS_SN_logs_index="+PS_SN_logs_index);
   }
 }
