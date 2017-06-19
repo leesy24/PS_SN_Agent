@@ -3,6 +3,8 @@ import hypermedia.net.*;
 //final static boolean DBG = true;
 final static boolean DBG = false;
 
+final static int PS_SN_SURFACE_H = 640;
+
 UDP PS_SN_handle = null;  // The handle of PS_SN
 UDP PS_Device_handle = null;  // The handle of PS_Device
 
@@ -13,10 +15,10 @@ String PS_Device_remote_ip_base = "10.0.";
 int PS_Device_remote_port = 1024;
 int PS_Device_local_port = 1025;
 
-int SN_rcv_data_length;
-String Device_remote_ip;
-int Device_remote_port;
-int Device_rcv_data_length;
+int PS_SN_logs_index = 0;
+int PS_SN_logs_length = PS_SN_SURFACE_H/15;
+String[] PS_SN_logs_array = new String[PS_SN_logs_length];
+boolean PS_SN_logs_stop = false;
 
 void settings() {
 /*
@@ -29,11 +31,12 @@ void settings() {
     // Nothing to do.
   }
 */
-  size(200, 200);
+  size(300, PS_SN_SURFACE_H);
 }
 
 void setup()
 {
+  //println("PS_SN_logs_length="+PS_SN_logs_length);
   // Create a new datagram connection on local port
   // and wait for incomming message
   //UDP._log(true);
@@ -49,28 +52,40 @@ void setup()
   PS_Device_handle.log( false );
   PS_Device_handle.setReceiveHandler( "PS_Device_receive_event" );
   PS_Device_handle.listen( true );
+  
+  //surface.setTitle("PS_SN_Agent " + PS_SN_local_port + "," + PS_SN_local_ip + "," + PS_Device_local_port);
+  surface.setTitle("PS_SN_Agent " + PS_SN_local_port + "," + PS_Device_local_port);
 }
 
 void draw()
 {
-  int y = 0;
+  int i = PS_SN_logs_index;
+
   background(0);
-  text("PS_SN_Agent " + PS_SN_local_ip + "," + PS_SN_local_port, 5, y += 20);
-  text(SN_rcv_data_length, 5, y += 20);
-  text(Device_remote_ip!=null?Device_remote_ip:"no ip", 5, y += 20);
-  text(Device_remote_port, 5, y += 20);
-  text(Device_rcv_data_length, 5, y += 20);
+  for(int y = 15; y < PS_SN_SURFACE_H; y += 15)
+  {
+    if(PS_SN_logs_array[i] != null) text(PS_SN_logs_array[i], 5, y);
+    i = (i += 1) % PS_SN_logs_length;
+  }
 }
 
-//void PS_SN_receive_event(byte[] data, String ip, int port)
-void PS_SN_receive_event(byte[] data)
+void mousePressed()
+{
+  PS_SN_logs_stop = true;
+}
+
+void mouseReleased()
+{
+  PS_SN_logs_stop = false;
+}
+
+
+void PS_SN_receive_event(byte[] data, String ip, int port)
 {
   String PS_Device_remote_ip;
   byte[] out;
   
   if(DBG) println("PS_SN_receive_event data.length=" + data.length);
-
-  SN_rcv_data_length = data.length;
 
   if(data.length < 3) return;
   
@@ -86,6 +101,12 @@ void PS_SN_receive_event(byte[] data)
 */
 
   PS_Device_handle.send(out, PS_Device_remote_ip, PS_Device_remote_port);
+  if(!PS_SN_logs_stop)
+  {
+    PS_SN_logs_array[PS_SN_logs_index] = PS_SN_local_ip+":"+port+","+PS_SN_local_port+","+data.length+","+data[0]+data[1]+"->"+PS_Device_remote_ip+","+PS_Device_remote_port+","+out.length;
+    PS_SN_logs_index = (PS_SN_logs_index += 1) % PS_SN_logs_length;
+    //println("PS_SN_logs_index="+PS_SN_logs_index);
+  }
 }
 
 void PS_Device_receive_event(byte[] data, String ip, int port)
@@ -95,11 +116,13 @@ void PS_Device_receive_event(byte[] data, String ip, int port)
 
   if(DBG) println("PS_Device_receive_event ip=" + ip + " port=" + port + " data.length=" + data.length);
 
-  Device_remote_ip = ip;
-  Device_remote_port = port;
-  Device_rcv_data_length = data.length;
-
   PS_SN_remote_port = 10000 + Integer.parseInt(ip_split[2]) * 100 + Integer.parseInt(ip_split[3]);
   if(DBG) println("PS_Device_receive_event PS_SN_remote_port=" + PS_SN_remote_port);
   PS_SN_handle.send(data, PS_SN_remote_ip, PS_SN_remote_port);
+  if(!PS_SN_logs_stop)
+  {
+    PS_SN_logs_array[PS_SN_logs_index] = ip+":"+port+","+PS_Device_local_port+","+data.length+"->"+PS_SN_remote_ip+","+PS_SN_remote_port+","+data.length;
+    PS_SN_logs_index = (PS_SN_logs_index += 1) % PS_SN_logs_length;
+    //println("PS_SN_logs_index="+PS_SN_logs_index);
+  }
 }
